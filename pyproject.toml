@@ -1,0 +1,38 @@
+[project]
+name = "mcp-xamp"
+version = "0.1.0"
+description = "MCP server for MariaDB/MySQL via XAMPP"
+requires-python = ">=3.13"
+dependencies = [
+    "mcp>=1.0.0",
+    "pymysql>=1.1.0",
+]
+
+[project.scripts]
+mcp-xamp = "mcp_xamp.server:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.4",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

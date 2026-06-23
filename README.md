@@ -51,43 +51,57 @@ configs below.
 
 ## Claude Code Setup
 
-### One-command setup
+### Option A: global install (recomendado)
+
+Instala `mcp-xamp` como comando global y registralo en Claude Code:
 
 ```bash
-claude mcp add --transport stdio --scope project \
-  --env MCP_XAMP_ALLOW_WRITE=true \
-  xamp -- uv run --directory /path/to/mcp-xamp mcp-xamp
+uv tool install --python 3.13 .
 ```
 
-Replace `/path/to/mcp-xamp` with the actual path where you cloned the repo.
+Luego agregá el server MCP. Elegí el scope que prefieras:
 
-This creates a `.mcp.json` in your project root that your whole team can share
-via git (each member adjusts the path).
+```bash
+# Scope project (crea .mcp.json en el directorio actual)
+claude mcp add xamp \
+  -e MCP_XAMP_HOST=localhost \
+  -e MCP_XAMP_PORT=3306 \
+  -e MCP_XAMP_USER=root \
+  -e MCP_XAMP_PASSWORD= \
+  -e MCP_XAMP_ALLOW_WRITE=true \
+  -- mcp-xamp
 
-### Manual config
-
-Add this to your `~/.claude.json` (user scope) or `.mcp.json` (project scope):
-
-```json
-{
-  "mcpServers": {
-    "xamp": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--directory",
-        "/path/to/mcp-xamp",
-        "mcp-xamp"
-      ],
-      "env": {
-        "MCP_XAMP_ALLOW_WRITE": "true"
-      }
-    }
-  }
-}
+# Scope user (disponible en todos tus proyectos)
+claude mcp add --scope user xamp \
+  -e MCP_XAMP_HOST=localhost \
+  -e MCP_XAMP_PORT=3306 \
+  -e MCP_XAMP_USER=root \
+  -e MCP_XAMP_PASSWORD= \
+  -e MCP_XAMP_ALLOW_WRITE=true \
+  -- mcp-xamp
 ```
 
-If you used `uv tool install`, the config is simpler:
+Ajusta los valores de las variables según tu instalacion de XAMPP.
+
+### Option B: sin instalar (usando uv run)
+
+Si preferis no instalar globalmente, apunta al directorio del repo:
+
+```bash
+claude mcp add xamp \
+  -e MCP_XAMP_HOST=localhost \
+  -e MCP_XAMP_PORT=3306 \
+  -e MCP_XAMP_USER=root \
+  -e MCP_XAMP_PASSWORD= \
+  -e MCP_XAMP_ALLOW_WRITE=true \
+  -- uv run --directory /ruta/a/mcp-xamp mcp-xamp
+```
+
+Reemplaza `/ruta/a/mcp-xamp` con la ruta real donde clonaste el repo.
+
+### Config manual (archivo .mcp.json)
+
+Si preferis editar el archivo a mano, tambien funciona:
 
 ```json
 {
@@ -96,6 +110,10 @@ If you used `uv tool install`, the config is simpler:
       "command": "mcp-xamp",
       "args": [],
       "env": {
+        "MCP_XAMP_HOST": "localhost",
+        "MCP_XAMP_PORT": "3306",
+        "MCP_XAMP_USER": "root",
+        "MCP_XAMP_PASSWORD": "",
         "MCP_XAMP_ALLOW_WRITE": "true"
       }
     }
@@ -103,23 +121,13 @@ If you used `uv tool install`, the config is simpler:
 }
 ```
 
-### Custom credentials
-
-If your XAMPP uses non-default credentials:
-
-```bash
-claude mcp add --transport stdio --scope project \
-  --env MCP_XAMP_HOST=db.example.com \
-  --env MCP_XAMP_PORT=3307 \
-  --env MCP_XAMP_USER=agent \
-  --env MCP_XAMP_PASSWORD=s3cret \
-  --env MCP_XAMP_ALLOW_WRITE=true \
-  xamp -- uv run --directory /path/to/mcp-xamp mcp-xamp
-```
+Si no instalaste globalmente, usa `"command": "uv"` con los args correspondientes
+(ver el `.mcp.json` de este repo como referencia).
 
 ### Verify
 
-Inside Claude Code, run `/mcp` to confirm `xamp` is connected. Then try:
+Dentro de Claude Code, corre `/mcp` para confirmar que `xamp` aparece como
+conectado. Despues proba:
 
 ```
 List all databases on my XAMPP server.

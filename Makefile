@@ -20,22 +20,29 @@ run:
 
 claude-setup:
 	@echo ""
-	@echo "Run this command (replace /path/to/mcp-xamp with your clone path):"
-	@echo "  claude mcp add --transport stdio --scope project --env MCP_XAMP_ALLOW_WRITE=true xamp -- uv run --directory /path/to/mcp-xamp mcp-xamp"
+	@echo "=== Global install (recommended) ==="
+	@echo "  make install-global"
+	@echo "  claude mcp add xamp -e MCP_XAMP_HOST=localhost -e MCP_XAMP_PORT=3306 -e MCP_XAMP_USER=root -e MCP_XAMP_PASSWORD= -e MCP_XAMP_ALLOW_WRITE=true -- mcp-xamp"
 	@echo ""
-	@echo "Or add this to your ~/.claude.json or project .mcp.json:"
+	@echo "=== Without install (uv run) ==="
+	@echo "  claude mcp add xamp -e MCP_XAMP_HOST=localhost -e MCP_XAMP_PORT=3306 -e MCP_XAMP_USER=root -e MCP_XAMP_PASSWORD= -e MCP_XAMP_ALLOW_WRITE=true -- uv run mcp-xamp"
+	@echo ""
+	@echo "=== Manual .mcp.json ==="
 	@echo '{'
 	@echo '  "mcpServers": {'
 	@echo '    "xamp": {'
-	@echo '      "command": "uv",'
-	@echo '      "args": ["run", "--directory", "/path/to/mcp-xamp", "mcp-xamp"],'
-	@echo '      "env": { "MCP_XAMP_ALLOW_WRITE": "true" }'
+	@echo '      "command": "mcp-xamp",'
+	@echo '      "args": [],'
+	@echo '      "env": {'
+	@echo '        "MCP_XAMP_HOST": "localhost",'
+	@echo '        "MCP_XAMP_PORT": "3306",'
+	@echo '        "MCP_XAMP_USER": "root",'
+	@echo '        "MCP_XAMP_PASSWORD": "",'
+	@echo '        "MCP_XAMP_ALLOW_WRITE": "true"'
+	@echo '      }'
 	@echo '    }'
 	@echo '  }'
 	@echo '}'
-	@echo ""
-	@echo "Or install globally first (make install-global) then use:"
-	@echo "  claude mcp add --transport stdio --scope project --env MCP_XAMP_ALLOW_WRITE=true xamp -- mcp-xamp"
 
 opencode-setup:
 	@echo ""

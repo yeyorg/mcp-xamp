@@ -5,10 +5,14 @@
       "args": [
         "run",
         "--directory",
-        "/path/to/mcp-xamp",
+        ".",
         "mcp-xamp"
       ],
       "env": {
+        "MCP_XAMP_HOST": "localhost",
+        "MCP_XAMP_PORT": "3306",
+        "MCP_XAMP_USER": "root",
+        "MCP_XAMP_PASSWORD": "",
         "MCP_XAMP_ALLOW_WRITE": "true"
       }
     }

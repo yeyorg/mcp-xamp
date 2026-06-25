@@ -1,10 +1,16 @@
-.PHONY: install install-global test lint format run clean claude-setup opencode-setup
+.PHONY: install install-global update test lint format run clean claude-setup opencode-setup
 
 install:
 	uv sync --group dev
 
 install-global:
 	uv tool install --python 3.13 .
+
+update:
+	git pull
+	uv tool install --python 3.13 .
+	@echo ""
+	@echo "mcp-xamp actualizado. Reinicia Claude Code para aplicar los cambios."
 
 test:
 	uv run pytest -v --cov=src/mcp_xamp --cov-report=term-missing

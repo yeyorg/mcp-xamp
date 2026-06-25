@@ -1,6 +1,7 @@
 """MCP XAMPP Server — stdio transport with 5 tools for MariaDB/MySQL access."""
 
 import asyncio
+import importlib.metadata
 import json
 import logging
 import sys
@@ -215,6 +216,8 @@ def _ping_db() -> None:
 
 async def main() -> None:
     """Launch the MCP server on stdio transport."""
+    version = importlib.metadata.version("mcp-xamp")
+    logger.info("mcp-xamp v%s iniciando.", version)
     try:
         await asyncio.to_thread(_ping_db)
         logger.info("Pre-flight OK: conexion a MariaDB/MySQL establecida.")

@@ -83,8 +83,7 @@ async def handle_list_tools() -> list[Tool]:
         Tool(
             name="read_query",
             description=(
-                "Ejecuta una consulta SQL de solo lectura "
-                "(SELECT, SHOW, DESCRIBE, EXPLAIN, WITH)."
+                "Ejecuta una consulta SQL de solo lectura (SELECT, SHOW, DESCRIBE, EXPLAIN, WITH)."
             ),
             inputSchema={
                 "type": "object",
@@ -96,6 +95,16 @@ async def handle_list_tools() -> list[Tool]:
                     "query": {
                         "type": "string",
                         "description": "Consulta SQL de solo lectura.",
+                    },
+                    "parameters": {
+                        "type": "array",
+                        "items": {"type": ["string", "number", "boolean", "null"]},
+                        "description": "Valores opcionales para placeholders %s en la consulta.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "Maximo de filas a devolver (limitado por el servidor).",
                     },
                 },
                 "required": ["database", "query"],
@@ -145,22 +154,18 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent]:
     except XampDatabaseError as exc:
         db = arguments.get("database", "desconocida") if isinstance(arguments, dict) else ""
         raise XampDatabaseError(
-            f"La base de datos '{db}' no existe. "
-            "Usa list_databases para ver las disponibles."
+            f"La base de datos '{db}' no existe. Usa list_databases para ver las disponibles."
         ) from exc
     except XampConnectionError:
         raise XampConnectionError(
-            "No se pudo conectar a la base de datos. "
-            "Esta corriendo XAMPP?"
+            "No se pudo conectar a la base de datos. Esta corriendo XAMPP?"
         ) from None
     except XampAuthError:
         raise XampAuthError(
             "Error de autenticacion. Verifica MCP_XAMP_USER y MCP_XAMP_PASSWORD."
         ) from None
     except XampTimeoutError:
-        raise XampTimeoutError(
-            "La consulta excedio el tiempo limite de 30 segundos."
-        ) from None
+        raise XampTimeoutError("La consulta excedio el tiempo limite de 30 segundos.") from None
     except XampError as exc:
         raise XampError(sanitize_error(exc)) from exc
     except Exception:
@@ -185,7 +190,9 @@ def _execute_tool(name: str, arguments: dict):
     if name == "read_query":
         database = arguments.get("database", "")
         query = arguments.get("query", "")
-        return read_query(factory, database, query)
+        parameters = arguments.get("parameters") or None
+        limit = arguments.get("limit")
+        return read_query(factory, database, query, parameters=parameters, limit=limit)
 
     if name == "write_query":
         check_write_allowed()
@@ -201,8 +208,23 @@ def _execute_tool(name: str, arguments: dict):
 # ---------------------------------------------------------------------------
 
 
+def _ping_db() -> None:
+    """Synchronous wrapper for the pre-flight connection check."""
+    factory.ping()
+
+
 async def main() -> None:
     """Launch the MCP server on stdio transport."""
+    try:
+        await asyncio.to_thread(_ping_db)
+        logger.info("Pre-flight OK: conexion a MariaDB/MySQL establecida.")
+    except XampError as exc:
+        logger.warning(
+            "Pre-flight: no se pudo conectar a la base de datos (%s). "
+            "El servidor continua; verifica que XAMPP este corriendo.",
+            sanitize_error(exc),
+        )
+
     async with stdio_server() as (read_stream, write_stream):
         await server.run(
             read_stream,

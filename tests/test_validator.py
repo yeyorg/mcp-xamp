@@ -1,6 +1,5 @@
 """Unit tests for query validation, write gate, and database parameter check."""
 
-
 import pytest
 
 from mcp_xamp.security.validator import (
@@ -64,6 +63,14 @@ class TestValidateReadQuery:
 
     def test_with_cte_accepted(self) -> None:
         validate_read_query("WITH cte AS (SELECT 1) SELECT * FROM cte")
+
+    def test_placeholder_single_accepted(self) -> None:
+        """A %s placeholder in a SELECT query must NOT trigger a validation error (AC3.4)."""
+        validate_read_query("SELECT * FROM t WHERE c = %s")
+
+    def test_placeholder_multiple_accepted(self) -> None:
+        """%s placeholders in multi-condition queries must be accepted (AC3.4)."""
+        validate_read_query("SELECT * FROM t WHERE a = %s AND b = %s")
 
 
 # ---------------------------------------------------------------------------

@@ -10,6 +10,7 @@ import pymysql.err
 
 from mcp_xamp.security.sanitizer import sanitize_error
 from mcp_xamp.types import (
+    QUERY_TIMEOUT,
     XampAuthError,
     XampConnectionError,
     XampDatabaseError,
@@ -49,6 +50,9 @@ class ConnectionFactory:
         """
         conn: pymysql.Connection | None = None
         try:
+            # read_timeout is a CLIENT-SIDE socket timeout only. It controls how
+            # long the client waits for the server to send data. The server-side
+            # query may continue running after the client times out and disconnects.
             conn = pymysql.connect(
                 host=self.host,
                 port=self.port,
@@ -56,7 +60,7 @@ class ConnectionFactory:
                 password=self.password,
                 database=database,
                 connect_timeout=5,
-                read_timeout=30,
+                read_timeout=QUERY_TIMEOUT,
                 charset="utf8mb4",
                 autocommit=True,
             )
@@ -83,3 +87,14 @@ class ConnectionFactory:
             if conn is not None:
                 with suppress(Exception):
                     conn.close()
+
+    def ping(self) -> None:
+        """Verify that a connection to the database can be established.
+
+        Opens a short-lived connection to the ``mysql`` system database (always
+        present on MariaDB/MySQL), executes ``SELECT 1``, and closes cleanly.
+        Exceptions propagate to the caller — error mapping is handled by
+        ``connect()``, so all Xamp error types apply here too.
+        """
+        with self.connect(database="mysql") as conn, conn.cursor() as cur:
+            cur.execute("SELECT 1")

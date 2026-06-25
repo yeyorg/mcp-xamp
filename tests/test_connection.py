@@ -1,12 +1,101 @@
 """Tests for ConnectionFactory — env-var parsing (unit) and real connections (integration)."""
 
+from contextlib import contextmanager
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from mcp_xamp.db.connection import ConnectionFactory
-from mcp_xamp.types import XampAuthError, XampConnectionError
+from mcp_xamp.types import QUERY_TIMEOUT, XampAuthError, XampConnectionError  # noqa: F401
 
 from .conftest import needs_mariadb
+
+# ---------------------------------------------------------------------------
+# Unit: QUERY_TIMEOUT wiring (A1.3)
+# ---------------------------------------------------------------------------
+
+
+class TestQueryTimeoutWiring:
+    def test_read_timeout_uses_query_timeout_constant(self) -> None:
+        """pymysql.connect must receive read_timeout=QUERY_TIMEOUT, not a literal."""
+        factory = ConnectionFactory()
+        captured_kwargs: dict = {}
+
+        def fake_connect(**kwargs):
+            captured_kwargs.update(kwargs)
+            mock_conn = MagicMock()
+            mock_conn.__enter__ = lambda s: s
+            mock_conn.__exit__ = MagicMock(return_value=False)
+            mock_conn.close = MagicMock()
+            mock_conn.open = True
+            return mock_conn
+
+        with patch("pymysql.connect", side_effect=fake_connect), factory.connect(database="test"):
+            pass
+
+        assert "read_timeout" in captured_kwargs
+        assert captured_kwargs["read_timeout"] == QUERY_TIMEOUT
+
+    def test_read_timeout_value_matches_types_constant(self) -> None:
+        """The value passed must equal whatever types.QUERY_TIMEOUT resolves to."""
+        from mcp_xamp import types
+
+        factory = ConnectionFactory()
+        captured_kwargs: dict = {}
+
+        def fake_connect(**kwargs):
+            captured_kwargs.update(kwargs)
+            mock_conn = MagicMock()
+            mock_conn.__enter__ = lambda s: s
+            mock_conn.__exit__ = MagicMock(return_value=False)
+            mock_conn.close = MagicMock()
+            mock_conn.open = True
+            return mock_conn
+
+        with patch("pymysql.connect", side_effect=fake_connect), factory.connect(database="test"):
+            pass
+
+        assert captured_kwargs["read_timeout"] == types.QUERY_TIMEOUT
+
+
+# ---------------------------------------------------------------------------
+# Unit: ping() (A6.3)
+# ---------------------------------------------------------------------------
+
+
+class TestPing:
+    def test_ping_success_returns_none(self) -> None:
+        """ping() should return None when the connection succeeds."""
+        factory = ConnectionFactory()
+
+        @contextmanager
+        def fake_connect(database):
+            mock_conn = MagicMock()
+            mock_cursor = MagicMock()
+            mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+            mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+            yield mock_conn
+
+        with patch.object(factory, "connect", side_effect=fake_connect):
+            result = factory.ping()
+
+        assert result is None
+
+    def test_ping_propagates_connection_error(self) -> None:
+        """ping() should let XampConnectionError propagate to the caller."""
+        factory = ConnectionFactory()
+
+        @contextmanager
+        def failing_connect(database):
+            raise XampConnectionError("Cannot reach DB")
+            yield  # make it a generator
+
+        with (
+            patch.object(factory, "connect", side_effect=failing_connect),
+            pytest.raises(XampConnectionError),
+        ):
+            factory.ping()
+
 
 # ---------------------------------------------------------------------------
 # Unit: from_env()
@@ -79,7 +168,5 @@ class TestConnectionIntegration:
     def test_invalid_password_raises_auth_error(self) -> None:
         factory = ConnectionFactory.from_env()
         factory.password = "wrong_password_xyz_12345"
-        with pytest.raises((XampAuthError, XampConnectionError)), factory.connect(
-            database="mysql"
-        ):
+        with pytest.raises((XampAuthError, XampConnectionError)), factory.connect(database="mysql"):
             pass

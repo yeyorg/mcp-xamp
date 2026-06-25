@@ -10,7 +10,7 @@ update:
 	git pull
 	uv tool install --python 3.13 .
 	@echo ""
-	@echo "mcp-xamp actualizado. Reinicia Claude Code para aplicar los cambios."
+	@echo "mcp-xamp actualizado. Reinicia tu CLI para aplicar los cambios."
 
 test:
 	uv run pytest -v --cov=src/mcp_xamp --cov-report=term-missing
